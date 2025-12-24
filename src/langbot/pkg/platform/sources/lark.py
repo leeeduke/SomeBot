@@ -9,9 +9,13 @@ import re
 import base64
 import uuid
 import json
+import time
 import datetime
 import hashlib
 from Crypto.Cipher import AES
+import tempfile
+import os
+import mimetypes
 
 import aiohttp
 import lark_oapi.ws.exception
@@ -19,6 +23,8 @@ import quart
 from lark_oapi.api.im.v1 import *
 import pydantic
 from lark_oapi.api.cardkit.v1 import *
+from lark_oapi.api.auth.v3 import *
+from lark_oapi.core.model import *
 
 import langbot_plugin.api.definition.abstract.platform.adapter as abstract_platform_adapter
 import langbot_plugin.api.entities.builtin.platform.message as platform_message
@@ -238,6 +244,7 @@ class LarkMessageConverter(abstract_platform_adapter.AbstractMessageConverter):
 
         lb_msg_list.append(platform_message.Source(id=message.message_id, time=msg_create_time))
 
+
         if message.message_type == 'text':
             element_list = []
 
@@ -297,6 +304,14 @@ class LarkMessageConverter(abstract_platform_adapter.AbstractMessageConverter):
             message_content['content'] = new_list
         elif message.message_type == 'image':
             message_content['content'] = [{'tag': 'img', 'image_key': message_content['image_key'], 'style': []}]
+        elif message.message_type == 'file':
+            message_content['content'] = [
+                {'tag': 'file', 'file_key': message_content['file_key'], 'file_name': message_content['file_name']}
+            ]
+        elif message.message_type == 'audio':
+            message_content['content'] = [
+                {'tag': 'audio', 'file_key': message_content['file_key'], "duration": message_content.get('duration',0)}
+            ]
 
         for ele in message_content['content']:
             if ele['tag'] == 'text':
@@ -327,6 +342,117 @@ class LarkMessageConverter(abstract_platform_adapter.AbstractMessageConverter):
                 image_format = response.raw.headers['content-type']
 
                 lb_msg_list.append(platform_message.Image(base64=f'data:{image_format};base64,{image_base64}'))
+            elif ele['tag'] == 'audio':
+                file_key = ele['file_key']
+                duration = ele['duration']
+
+                # Download audio file
+                request: GetMessageResourceRequest = (
+                    GetMessageResourceRequest.builder()
+                    .message_id(message.message_id)
+                    .file_key(file_key)
+                    .type('file')
+                    .build()
+                )
+
+                try:
+                    response: GetMessageResourceResponse = await api_client.im.v1.message_resource.aget(request)
+
+                    if not response.success():
+                        print(f'Failed to download audio: code: {response.code}, msg: {response.msg}')
+                        lb_msg_list.append(platform_message.Plain(text='[Audio file download failed]'))
+                        return platform_message.MessageChain(lb_msg_list)
+
+                    # Read audio bytes
+                    audio_bytes = response.file.read()
+                    audio_base64 = base64.b64encode(audio_bytes).decode()
+
+
+                    # Get content type from response headers
+                    content_type = response.raw.headers.get('content-type', 'audio/mpeg')
+
+
+
+                    mime_main = content_type.split(';')[0].strip()
+                    ext = mimetypes.guess_extension(mime_main) or '.bin'
+                    temp_dir = tempfile.gettempdir()
+                    temp_file_path = os.path.join(temp_dir, f'lark_audio_{file_key}{ext}')
+
+                    with open(temp_file_path, 'wb') as f:
+                        f.write(audio_bytes)
+
+                    # Create Voice message: prefer path/url + length, include base64 as optional data URI
+                    lb_msg_list.append(
+                        platform_message.Voice(
+                            voice_id=file_key,
+                            url=f'file://{temp_file_path}',
+                            path=temp_file_path,
+                            base64=f'data:{content_type};base64,{audio_base64}',
+                            length=(duration // 1000) if duration else None,
+                        )
+                    )
+                except Exception as e:
+                    print(f'Error downloading audio: {e}')
+                    traceback.print_exc()
+                    lb_msg_list.append(platform_message.Plain(text='[Audio file download error]'))
+
+            elif ele['tag'] == 'file':
+                file_key = ele['file_key']
+                file_name = ele['file_name']
+
+                request: GetMessageResourceRequest = (
+                    GetMessageResourceRequest.builder()
+                    .message_id(message.message_id)
+                    .file_key(file_key)
+                    .type('file')
+                    .build()
+                )
+
+                response: GetMessageResourceResponse = await api_client.im.v1.message_resource.aget(request)
+
+                if not response.success():
+                    raise Exception(
+                        f'client.im.v1.message_resource.get failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}, resp: \n{json.dumps(json.loads(response.raw.content), indent=4, ensure_ascii=False)}'
+                    )
+
+                file_bytes = response.file.read()
+                file_base64 = base64.b64encode(file_bytes).decode()
+
+
+                file_format = response.raw.headers['content-type']
+
+                file_size = len(file_bytes)
+
+                # Determine extension from content-type if possible
+                content_type = response.raw.headers.get('content-type', '')
+                mime_main = content_type.split(';')[0].strip() if content_type else ''
+                ext = mimetypes.guess_extension(mime_main) or ''
+
+                # Ensure a safe filename (avoid path components)
+                safe_name = os.path.basename(file_name).replace('/', '_').replace('\\', '_')
+                if ext and not safe_name.lower().endswith(ext.lower()):
+                    filename_with_ext = f'{safe_name}{ext}'
+                else:
+                    filename_with_ext = safe_name
+
+                temp_dir = tempfile.gettempdir()
+                temp_file_path = os.path.join(temp_dir, f'lark_{file_key}_{filename_with_ext}')
+
+                with open(temp_file_path, 'wb') as f:
+                    f.write(file_bytes)
+
+                # Create File message with local path and file:// URL
+                lb_msg_list.append(
+                    platform_message.File(
+                        id=file_key,
+                        name=file_name,
+                        size=file_size,
+                        url=f'file://{temp_file_path}',
+                        path=temp_file_path,
+                        base64=f'data:{file_format};base64,{file_base64}',  # not including base64 by default to save memory; can be added if needed
+                    )
+                )
+
 
         return platform_message.MessageChain(lb_msg_list)
 
@@ -353,6 +479,7 @@ class LarkEventConverter(abstract_platform_adapter.AbstractEventConverter):
                 ),
                 message_chain=message_chain,
                 time=event.event.message.create_time,
+                source_platform_object=event,
             )
         elif event.event.message.chat_type == 'group':
             return platform_events.GroupMessage(
@@ -369,6 +496,7 @@ class LarkEventConverter(abstract_platform_adapter.AbstractEventConverter):
                 ),
                 message_chain=message_chain,
                 time=event.event.message.create_time,
+                source_platform_object=event,
             )
 
 
@@ -385,6 +513,7 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
 
     message_converter: LarkMessageConverter = LarkMessageConverter()
     event_converter: LarkEventConverter = LarkEventConverter()
+    cipher: AESCipher
 
     listeners: typing.Dict[
         typing.Type[platform_events.Event],
@@ -396,50 +525,14 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
     card_id_dict: dict[str, str]  # 消息id到卡片id的映射，便于创建卡片后的发送消息到指定卡片
 
     seq: int  # 用于在发送卡片消息中识别消息顺序，直接以seq作为标识
+    bot_uuid: str = None  # 机器人UUID
+    app_ticket: str = None  # 商店应用用到
+    app_access_token: str = None  # 商店应用用到
+    app_access_token_expire_at: int = None
+    tenant_access_tokens: dict[str, dict[str, str]] = {}  # 租户access_token映射
 
     def __init__(self, config: dict, logger: abstract_platform_logger.AbstractEventLogger, **kwargs):
         quart_app = quart.Quart(__name__)
-
-        @quart_app.route('/lark/callback', methods=['POST'])
-        async def lark_callback():
-            try:
-                data = await quart.request.json
-
-                if 'encrypt' in data:
-                    cipher = AESCipher(config['encrypt-key'])
-                    data = cipher.decrypt_string(data['encrypt'])
-                    data = json.loads(data)
-
-                type = data.get('type')
-                if type is None:
-                    context = EventContext(data)
-                    type = context.header.event_type
-
-                if 'url_verification' == type:
-                    # todo 验证verification token
-                    return {'challenge': data.get('challenge')}
-                context = EventContext(data)
-                type = context.header.event_type
-                p2v1 = P2ImMessageReceiveV1()
-                p2v1.header = context.header
-                event = P2ImMessageReceiveV1Data()
-                event.message = EventMessage(context.event['message'])
-                event.sender = EventSender(context.event['sender'])
-                p2v1.event = event
-                p2v1.schema = context.schema
-                if 'im.message.receive_v1' == type:
-                    try:
-                        event = await self.event_converter.target2yiri(p2v1, self.api_client)
-                    except Exception:
-                        await self.logger.error(f'Error in lark callback: {traceback.format_exc()}')
-
-                    if event.__class__ in self.listeners:
-                        await self.listeners[event.__class__](event, self)
-
-                return {'code': 200, 'message': 'ok'}
-            except Exception:
-                await self.logger.error(f'Error in lark callback: {traceback.format_exc()}')
-                return {'code': 500, 'message': 'error'}
 
         async def on_message(event: lark_oapi.im.v1.P2ImMessageReceiveV1):
             lb_event = await self.event_converter.target2yiri(event, self.api_client)
@@ -456,7 +549,9 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
         bot_account_id = config['bot_name']
 
         bot = lark_oapi.ws.Client(config['app_id'], config['app_secret'], event_handler=event_handler)
-        api_client = lark_oapi.Client.builder().app_id(config['app_id']).app_secret(config['app_secret']).build()
+        api_client = self.build_api_client(config)
+        cipher = AESCipher(config.get('encrypt-key', ''))
+        self.request_app_ticket(api_client, config)
 
         super().__init__(
             config=config,
@@ -469,8 +564,104 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             bot=bot,
             api_client=api_client,
             bot_account_id=bot_account_id,
+            cipher=cipher,
             **kwargs,
         )
+
+    def request_app_ticket(self, api_client, config):
+        app_id = config['app_id']
+        app_secret = config['app_secret']
+        print(f'Requesting app ticket for app_id: {app_id[:3]}***{app_id[-3:]}')
+        if 'isv' == config.get('app_type', 'self'):
+            request: ResendAppTicketRequest = (
+                ResendAppTicketRequest.builder()
+                .request_body(ResendAppTicketRequestBody.builder().app_id(app_id).app_secret(app_secret).build())
+                .build()
+            )
+            response: ResendAppTicketResponse = api_client.auth.v3.app_ticket.resend(request)
+            if not response.success():
+                raise Exception(
+                    f'client.auth.v3.auth.app_ticket_resend failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}, resp: \n{json.dumps(json.loads(response.raw.content), indent=4, ensure_ascii=False)}'
+                )
+
+    def request_app_access_token(self):
+        app_id = self.config['app_id']
+        app_secret = self.config['app_secret']
+        if 'isv' == self.config.get('app_type', 'self'):
+            request: CreateAppAccessTokenRequest = (
+                CreateAppAccessTokenRequest.builder()
+                .request_body(
+                    CreateAppAccessTokenRequestBody.builder()
+                    .app_id(app_id)
+                    .app_secret(app_secret)
+                    .app_ticket(self.app_ticket)
+                    .build()
+                )
+                .build()
+            )
+            response: CreateAppAccessTokenResponse = self.api_client.auth.v3.app_access_token.create(request)
+            if not response.success():
+                raise Exception(
+                    f'client.auth.v3.auth.app_access_token failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}, resp: \n{json.dumps(json.loads(response.raw.content), indent=4, ensure_ascii=False)}'
+                )
+            content = json.loads(response.raw.content)
+            self.app_access_token = content['app_access_token']
+            self.app_access_token_expire_at = int(time.time()) + content['expire'] - 300
+
+    def get_app_access_token(self):
+        if 'isv' != self.config.get('app_type', 'self'):
+            return None
+        if (
+            self.app_access_token is None
+            or self.app_access_token_expire_at is None
+            or int(time.time()) >= self.app_access_token_expire_at
+        ):
+            self.request_app_access_token()
+        return self.app_access_token
+
+    def request_tenant_access_token(self, tenant_key: str):
+        app_access_token = self.get_app_access_token()
+        if 'isv' == self.config.get('app_type', 'self'):
+            request: CreateTenantAccessTokenRequest = (
+                CreateTenantAccessTokenRequest.builder()
+                .request_body(
+                    CreateTenantAccessTokenRequestBody.builder()
+                    .app_access_token(app_access_token)
+                    .tenant_key(tenant_key)
+                    .build()
+                )
+                .build()
+            )
+            response: CreateTenantAccessTokenResponse = self.api_client.auth.v3.tenant_access_token.create(request)
+            if not response.success():
+                raise Exception(
+                    f'client.auth.v3.auth.tenant_access_token failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}, resp: \n{json.dumps(json.loads(response.raw.content), indent=4, ensure_ascii=False)}'
+                )
+            content = json.loads(response.raw.content)
+            tenant_access_token = content['tenant_access_token']
+            expire = content['expire']
+            self.tenant_access_tokens[tenant_key] = {
+                'token': tenant_access_token,
+                'expire_at': int(time.time()) + expire - 300,
+            }
+
+    def get_tenant_access_token(self, tenant_key: str):
+        if tenant_key is None or 'isv' != self.config.get('app_type', 'self'):
+            return None
+        tenant_access_token = self.tenant_access_tokens.get(tenant_key)
+        if tenant_access_token is None or int(time.time()) >= tenant_access_token['expire_at']:
+            self.request_tenant_access_token(tenant_key)
+        return self.tenant_access_tokens.get(tenant_key)['token'] if self.tenant_access_tokens.get(tenant_key) else None
+
+    def build_api_client(self, config):
+        app_id = config['app_id']
+        app_secret = config['app_secret']
+        api_client = lark_oapi.Client.builder().app_id(app_id).app_secret(app_secret).build()
+        if 'isv' == config.get('app_type', 'self'):
+            api_client = (
+                lark_oapi.Client.builder().app_id(app_id).app_secret(app_secret).app_type(lark_oapi.AppType.ISV).build()
+            )
+        return api_client
 
     async def send_message(self, target_type: str, target_id: str, message: platform_message.MessageChain):
         pass
@@ -699,9 +890,19 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             )
             .build()
         )
-
+        tenant_key = event.source_platform_object.header.tenant_key if event.source_platform_object else None
+        app_access_token = self.get_app_access_token()
+        tenant_access_token = self.get_tenant_access_token(tenant_key)
+        req_opt: RequestOption = (
+            RequestOption.builder()
+            .app_ticket(self.app_ticket)
+            .tenant_key(tenant_key)
+            .app_access_token(app_access_token)
+            .tenant_access_token(tenant_access_token)
+            .build()
+        )
         # 发起请求
-        response: ReplyMessageResponse = await self.api_client.im.v1.message.areply(request)
+        response: ReplyMessageResponse = await self.api_client.im.v1.message.areply(request, req_opt)
 
         # 处理失败返回
         if not response.success():
@@ -728,7 +929,6 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                     'content': text_elements,
                 },
             }
-
             request: ReplyMessageRequest = (
                 ReplyMessageRequest.builder()
                 .message_id(message_source.message_chain.message_id)
@@ -743,7 +943,22 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                 .build()
             )
 
-            response: ReplyMessageResponse = await self.api_client.im.v1.message.areply(request)
+            tenant_key = (
+                message_source.source_platform_object.header.tenant_key
+                if message_source.source_platform_object
+                else None
+            )
+            app_access_token = self.get_app_access_token()
+            tenant_access_token = self.get_tenant_access_token(tenant_key)
+            req_opt: RequestOption = (
+                RequestOption.builder()
+                .app_ticket(self.app_ticket)
+                .tenant_key(tenant_key)
+                .app_access_token(app_access_token)
+                .tenant_access_token(tenant_access_token)
+                .build()
+            )
+            response: ReplyMessageResponse = await self.api_client.im.v1.message.areply(request, req_opt)
 
             if not response.success():
                 raise Exception(
@@ -768,7 +983,22 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                 .build()
             )
 
-            response: ReplyMessageResponse = await self.api_client.im.v1.message.areply(request)
+            tenant_key = (
+                message_source.source_platform_object.header.tenant_key
+                if message_source.source_platform_object
+                else None
+            )
+            app_access_token = self.get_app_access_token()
+            tenant_access_token = self.get_tenant_access_token(tenant_key)
+            req_opt: RequestOption = (
+                RequestOption.builder()
+                .app_ticket(self.app_ticket)
+                .tenant_key(tenant_key)
+                .app_access_token(app_access_token)
+                .tenant_access_token(tenant_access_token)
+                .build()
+            )
+            response: ReplyMessageResponse = await self.api_client.im.v1.message.areply(request, req_opt)
 
             if not response.success():
                 raise Exception(
@@ -822,8 +1052,24 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             if is_final and bot_message.tool_calls is None:
                 # self.seq = 1  # 消息回复结束之后重置seq
                 self.card_id_dict.pop(message_id)  # 清理已经使用过的卡片
+
+            tenant_key = (
+                message_source.source_platform_object.header.tenant_key
+                if message_source.source_platform_object
+                else None
+            )
+            app_access_token = self.get_app_access_token()
+            tenant_access_token = self.get_tenant_access_token(tenant_key)
+            req_opt: RequestOption = (
+                RequestOption.builder()
+                .app_ticket(self.app_ticket)
+                .tenant_key(tenant_key)
+                .app_access_token(app_access_token)
+                .tenant_access_token(tenant_access_token)
+                .build()
+            )
             # 发起请求
-            response: ContentCardElementResponse = self.api_client.cardkit.v1.card_element.content(request)
+            response: ContentCardElementResponse = self.api_client.cardkit.v1.card_element.content(request, req_opt)
 
             # 处理失败返回
             if not response.success():
@@ -853,8 +1099,110 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
     ):
         self.listeners.pop(event_type)
 
+    def set_bot_uuid(self, bot_uuid: str):
+        """设置 bot UUID（用于生成 webhook URL）"""
+        self.bot_uuid = bot_uuid
+
+    def get_event_type(self, data):
+        schema = '1.0'
+        if 'schema' in data:
+            schema = data['schema']
+        if '2.0' == schema:
+            return data['header']['event_type']
+        elif 'event' in data:
+            return data['event']['type']
+        else:
+            return data['type']
+
+    async def handle_unified_webhook(self, bot_uuid: str, path: str, request):
+        """处理统一 webhook 请求。
+        Args:
+            bot_uuid: Bot 的 UUID
+            path: 子路径（如果有的话）
+            request: Quart Request 对象
+        Returns:
+            响应数据
+        """
+        try:
+            data = await request.json
+
+            if 'encrypt' in data:
+                data = self.cipher.decrypt_string(data['encrypt'])
+                data = json.loads(data)
+            type = self.get_event_type(data)
+            context = EventContext(data)
+            if 'url_verification' == type:
+                # todo 验证verification token
+                return {'challenge': data.get('challenge')}
+            elif 'app_ticket' == type:
+                self.app_ticket = context.event['app_ticket']
+            elif 'im.message.receive_v1' == type:
+                try:
+                    p2v1 = P2ImMessageReceiveV1()
+                    p2v1.header = context.header
+                    event = P2ImMessageReceiveV1Data()
+                    event.message = EventMessage(context.event['message'])
+                    event.sender = EventSender(context.event['sender'])
+                    p2v1.event = event
+                    p2v1.schema = context.schema
+                    event = await self.event_converter.target2yiri(p2v1, self.api_client)
+                except Exception:
+                    await self.logger.error(f'Error in lark callback: {traceback.format_exc()}')
+
+                if event.__class__ in self.listeners:
+                    await self.listeners[event.__class__](event, self)
+            elif 'im.chat.member.bot.added_v1' == type:
+                try:
+                    bot_added_welcome_msg = self.config.get('bot_added_welcome', '')
+                    if bot_added_welcome_msg:
+                        final_content = {
+                            'zh_Hans': {
+                                'title': '',
+                                'content': [[{'tag': 'md', 'text': bot_added_welcome_msg}]],
+                            },
+                        }
+                        chat_id = context.event['chat_id']
+                        request: CreateMessageRequest = (
+                            CreateMessageRequest.builder()
+                            .receive_id_type('chat_id')
+                            .request_body(
+                                CreateMessageRequestBody.builder()
+                                .receive_id(chat_id)
+                                .content(json.dumps(final_content))
+                                .msg_type('post')
+                                .uuid(str(uuid.uuid4()))
+                                .build()
+                            )
+                            .build()
+                        )
+                        tenant_key = context.header.tenant_key if context.header else None
+                        app_access_token = self.get_app_access_token()
+                        tenant_access_token = self.get_tenant_access_token(tenant_key)
+                        req_opt: RequestOption = (
+                            RequestOption.builder()
+                            .app_ticket(self.app_ticket)
+                            .tenant_key(tenant_key)
+                            .app_access_token(app_access_token)
+                            .tenant_access_token(tenant_access_token)
+                            .build()
+                        )
+                        response: CreateMessageResponse = self.api_client.im.v1.message.create(request, req_opt)
+
+                        if not response.success():
+                            raise Exception(
+                                f'client.im.v1.message.create failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}, resp: \n{json.dumps(json.loads(response.raw.content), indent=4, ensure_ascii=False)}'
+                            )
+                except Exception as e:
+                    print(f'im.chat.member.bot.added_v1: {e}')
+                    await self.logger.error(f'Error in lark callback: {traceback.format_exc()}')
+
+            return {'code': 200, 'message': 'ok'}
+        except Exception as e:
+            print(f'Error in lark callback: {e}')
+            await self.logger.error(f'Error in lark callback: {traceback.format_exc()}')
+            return {'code': 500, 'message': 'error'}
+
     async def run_async(self):
-        port = self.config['port']
         enable_webhook = self.config['enable-webhook']
 
         if not enable_webhook:
@@ -869,16 +1217,14 @@ class LarkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                 else:
                     raise e
         else:
+            # 统一 webhook 模式下，不启动独立的 Quart 应用
+            # 保持运行但不启动独立端口
 
-            async def shutdown_trigger_placeholder():
+            async def keep_alive():
                 while True:
                     await asyncio.sleep(1)
 
-            await self.quart_app.run_task(
-                host='0.0.0.0',
-                port=port,
-                shutdown_trigger=shutdown_trigger_placeholder,
-            )
+            await keep_alive()
 
     async def kill(self) -> bool:
         # 需要断开连接，不然旧的连接会继续运行，导致飞书消息来时会随机选择一个连接

@@ -2,8 +2,9 @@ const enUS = {
   common: {
     login: 'Login',
     logout: 'Logout',
-    accountOptions: 'Account',
+    accountOptions: 'Settings',
     account: 'Account',
+    integration: 'Integration',
     email: 'Email',
     password: 'Password',
     welcome: 'Welcome back to LangBot 👋',
@@ -16,6 +17,7 @@ const enUS = {
     emptyPassword: 'Please enter your password',
     language: 'Language',
     helpDocs: 'Get Help',
+    featureRequest: 'Feature Request',
     create: 'Create',
     edit: 'Edit',
     delete: 'Delete',
@@ -141,10 +143,11 @@ const enUS = {
     boolean: 'Boolean',
     selectModelProvider: 'Select Model Provider',
     modelProviderDescription:
-      'Please fill in the model name provided by the supplier',
+      'Please fill in the model name provided by the provider',
     modelManufacturer: 'Model Manufacturer',
     aggregationPlatform: 'Aggregation Platform',
     selfDeployed: 'Self-deployed',
+    builtin: 'Built-in',
     selectModel: 'Select Model',
     testSuccess: 'Test successful',
     testError: 'Test failed, please check your model configuration',
@@ -192,6 +195,10 @@ const enUS = {
     webhookUrlCopied: 'Webhook URL copied',
     webhookUrlHint:
       'Click the input to select all, then press Ctrl+C (Mac: Cmd+C) to copy, or click the button',
+    logLevel: 'Log Level',
+    allLevels: 'All Levels',
+    selectLevel: 'Select Level',
+    levelsSelected: 'levels selected',
   },
   plugins: {
     title: 'Extensions',
@@ -284,6 +291,7 @@ const enUS = {
     noComponents: 'No components',
     delete: 'Delete Plugin',
     update: 'Update Plugin',
+    new: 'New',
     updateConfirm: 'Update Confirmation',
     confirmUpdatePlugin:
       'Are you sure you want to update the plugin ({{author}}/{{name}})?',
@@ -495,6 +503,9 @@ const enUS = {
     defaultPipelineCannotDelete: 'Default pipeline cannot be deleted',
     deleteSuccess: 'Deleted successfully',
     deleteError: 'Delete failed: ',
+    copyConfirmTitle: 'Confirm Copy',
+    copyConfirmation:
+      'Are you sure you want to copy this pipeline? This will create a new pipeline with all configurations.',
     extensions: {
       title: 'Extensions',
       loadError: 'Failed to load plugins',
@@ -538,6 +549,7 @@ const enUS = {
       loadPipelinesFailed: 'Failed to load pipelines',
       atTips: 'Mention the bot',
       streaming: 'Streaming',
+      streamOutput: 'Stream',
       connected: 'WebSocket connected',
       disconnected: 'WebSocket disconnected',
       connectionError: 'WebSocket connection error',
@@ -725,6 +737,11 @@ const enUS = {
     llmModels: 'LLM',
     extraParametersDescription:
       'Will be attached to the request body, such as max_tokens, temperature, top_p, etc.',
+  },
+  version: {
+    newVersionAvailable: 'New Version Available',
+    viewUpdateGuide: 'View Update Guide',
+    noReleaseNotes: 'No release notes available',
   },
 };
 

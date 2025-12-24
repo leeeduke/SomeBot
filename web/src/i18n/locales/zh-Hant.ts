@@ -2,8 +2,9 @@ const zhHant = {
   common: {
     login: '登入',
     logout: '登出',
-    accountOptions: '帳戶選項',
+    accountOptions: '系統設定',
     account: '帳戶',
+    integration: '連接',
     email: '電子郵件',
     password: '密碼',
     welcome: '歡迎回到 LangBot 👋',
@@ -16,6 +17,7 @@ const zhHant = {
     emptyPassword: '請輸入密碼',
     language: '語言',
     helpDocs: '輔助說明',
+    featureRequest: '需求建議',
     create: '建立',
     edit: '編輯',
     delete: '刪除',
@@ -142,6 +144,7 @@ const zhHant = {
     modelManufacturer: '模型廠商',
     aggregationPlatform: '中轉平台',
     selfDeployed: '自部署',
+    builtin: '內建',
     selectModel: '請選擇模型',
     testSuccess: '測試成功',
     testError: '測試失敗，請檢查模型設定',
@@ -187,6 +190,10 @@ const zhHant = {
     webhookUrlCopied: 'Webhook 位址已複製',
     webhookUrlHint:
       '點擊輸入框自動全選，然後按 Ctrl+C (Mac: Cmd+C) 複製，或點擊右側按鈕',
+    logLevel: '日誌級別',
+    allLevels: '全部級別',
+    selectLevel: '選擇級別',
+    levelsSelected: '個級別已選',
   },
   plugins: {
     title: '外掛擴展',
@@ -270,6 +277,7 @@ const zhHant = {
     noComponents: '無組件',
     delete: '刪除插件',
     update: '更新插件',
+    new: '新',
     updateConfirm: '更新確認',
     confirmUpdatePlugin: '您確定要更新插件（{{author}}/{{name}}）嗎？',
     confirmUpdate: '確認更新',
@@ -475,6 +483,9 @@ const zhHant = {
     defaultPipelineCannotDelete: '預設流程線不可刪除',
     deleteSuccess: '刪除成功',
     deleteError: '刪除失敗：',
+    copyConfirmTitle: '確認複製',
+    copyConfirmation:
+      '確定要複製這個流程線嗎？複製將創建一個包含完整配置的新流程線。',
     extensions: {
       title: '擴展集成',
       loadError: '載入插件清單失敗',
@@ -518,6 +529,7 @@ const zhHant = {
       loadPipelinesFailed: '載入流程線失敗',
       atTips: '提及機器人',
       streaming: '串流傳輸',
+      streamOutput: '串流',
       connected: 'WebSocket已連接',
       disconnected: 'WebSocket未連接',
       connectionError: 'WebSocket連接錯誤',
@@ -697,6 +709,11 @@ const zhHant = {
     description: '管理 LLM 模型，用於對話訊息產生',
     extraParametersDescription:
       '將在請求時附加到請求體中，如 max_tokens, temperature, top_p 等',
+  },
+  version: {
+    newVersionAvailable: '有新版本可用',
+    viewUpdateGuide: '查看更新方式',
+    noReleaseNotes: '暫無更新日誌',
   },
 };
 

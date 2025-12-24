@@ -2,8 +2,9 @@ const jaJP = {
   common: {
     login: 'ログイン',
     logout: 'ログアウト',
-    accountOptions: 'アカウントオプション',
+    accountOptions: 'システム設定',
     account: 'アカウント',
+    integration: '連携',
     email: 'メールアドレス',
     password: 'パスワード',
     welcome: 'LangBot へおかえりなさい 👋',
@@ -17,6 +18,7 @@ const jaJP = {
     emptyPassword: 'パスワードを入力してください',
     language: '言語',
     helpDocs: 'ヘルプドキュメント',
+    featureRequest: '機能リクエスト',
     create: '作成',
     edit: '編集',
     delete: '削除',
@@ -148,6 +150,7 @@ const jaJP = {
     modelManufacturer: 'モデルメーカー',
     aggregationPlatform: 'アグリゲーションプラットフォーム',
     selfDeployed: 'セルフデプロイ',
+    builtin: 'ビルトイン',
     selectModel: 'モデルを選択してください',
     testSuccess: 'テストに成功しました',
     testError: 'テストに失敗しました。モデル設定を確認してください',
@@ -194,6 +197,10 @@ const jaJP = {
     webhookUrlCopied: 'Webhook URL をコピーしました',
     webhookUrlHint:
       '入力ボックスをクリックして全選択し、Ctrl+C (Mac: Cmd+C) でコピーするか、右側のボタンをクリックしてください',
+    logLevel: 'ログレベル',
+    allLevels: 'すべてのレベル',
+    selectLevel: 'レベルを選択',
+    levelsSelected: 'レベル選択済み',
   },
   plugins: {
     title: '拡張機能',
@@ -285,6 +292,7 @@ const jaJP = {
     noComponents: '部品がありません',
     delete: 'プラグインを削除',
     update: 'プラグインを更新',
+    new: 'New',
     updateConfirm: '更新の確認',
     confirmUpdatePlugin:
       'プラグイン「{{author}}/{{name}}」を更新してもよろしいですか？',
@@ -498,6 +506,9 @@ const jaJP = {
     defaultPipelineCannotDelete: 'デフォルトパイプラインは削除できません',
     deleteSuccess: '削除に成功しました',
     deleteError: '削除に失敗しました：',
+    copyConfirmTitle: 'コピーの確認',
+    copyConfirmation:
+      'このパイプラインをコピーしますか？すべての設定を含む新しいパイプラインが作成されます。',
     extensions: {
       title: 'プラグイン統合',
       loadError: 'プラグインリストの読み込みに失敗しました',
@@ -541,6 +552,7 @@ const jaJP = {
       loadPipelinesFailed: 'パイプラインの読み込みに失敗しました',
       atTips: 'ボットをメンション',
       streaming: 'ストリーミング',
+      streamOutput: 'ストリーム',
       connected: 'WebSocket接続済み',
       disconnected: 'WebSocket未接続',
       connectionError: 'WebSocket接続エラー',
@@ -730,6 +742,11 @@ const jaJP = {
     llmModels: 'LLMモデル',
     extraParametersDescription:
       'リクエストボディに追加されるパラメータ（max_tokens、temperature、top_p など）',
+  },
+  version: {
+    newVersionAvailable: '新しいバージョンが利用可能',
+    viewUpdateGuide: 'アップデート方法を見る',
+    noReleaseNotes: 'リリースノートはありません',
   },
 };
 

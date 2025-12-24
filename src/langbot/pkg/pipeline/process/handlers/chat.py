@@ -14,6 +14,7 @@ from ....utils import importutil
 from ....provider import runners
 import langbot_plugin.api.entities.builtin.provider.session as provider_session
 import langbot_plugin.api.entities.builtin.pipeline.query as pipeline_query
+import langbot_plugin.api.entities.builtin.provider.message as provider_message
 
 
 importutil.import_modules_in_pkg(runners)
@@ -61,8 +62,14 @@ class ChatMessageHandler(handler.MessageHandler):
                 yield entities.StageProcessResult(result_type=entities.ResultType.INTERRUPT, new_query=query)
         else:
             if event_ctx.event.user_message_alter is not None:
-                # if isinstance(event_ctx.event, str):  # 现在暂时不考虑多模态alter
-                query.user_message.content = event_ctx.event.user_message_alter
+                if isinstance(event_ctx.event.user_message_alter, list):
+                    query.user_message.content = event_ctx.event.user_message_alter
+                elif isinstance(event_ctx.event.user_message_alter, str):
+                    query.user_message.content = [
+                        provider_message.ContentElement.from_text(event_ctx.event.user_message_alter)
+                    ]
+                elif isinstance(event_ctx.event.user_message_alter, provider_message.ContentElement):
+                    query.user_message.content = [event_ctx.event.user_message_alter]
 
             text_length = 0
             try:
@@ -76,9 +83,10 @@ class ChatMessageHandler(handler.MessageHandler):
                         runner = r(self.ap, query.pipeline_config)
                         break
                 else:
-                    raise ValueError(f'未找到请求运行器: {query.pipeline_config["ai"]["runner"]["runner"]}')
+                    raise ValueError(f'Request Runner not found: {query.pipeline_config["ai"]["runner"]["runner"]}')
                 if is_stream:
                     resp_message_id = uuid.uuid4()
+                    chunk_count = 0  # Track streaming chunks to reduce excessive logging
 
                     async for result in runner.run(query):
                         result.resp_message_id = str(resp_message_id)
@@ -91,18 +99,37 @@ class ChatMessageHandler(handler.MessageHandler):
                             await query.adapter.create_message_card(str(resp_message_id), query.message_event)
                             is_create_card = True
                         query.resp_messages.append(result)
-                        self.ap.logger.info(f'对话({query.query_id})流式响应: {self.cut_str(result.readable_str())}')
+
+                        chunk_count += 1
+                        # Only log every 10th chunk to reduce excessive logging during streaming
+                        # This prevents memory overflow from thousands of log entries per conversation
+                        # First chunk uses INFO level to confirm connection establishment
+                        if chunk_count == 1:
+                            self.ap.logger.info(
+                                f'Conversation({query.query_id}) Streaming started: {self.cut_str(result.readable_str())}'
+                            )
+                        elif chunk_count % 10 == 0:
+                            self.ap.logger.debug(
+                                f'Conversation({query.query_id}) Streaming chunk {chunk_count}: {self.cut_str(result.readable_str())}'
+                            )
 
                         if result.content is not None:
                             text_length += len(result.content)
 
                         yield entities.StageProcessResult(result_type=entities.ResultType.CONTINUE, new_query=query)
 
+                    # Log final summary after streaming completes
+                    self.ap.logger.info(
+                        f'Conversation({query.query_id}) Streaming completed: {chunk_count} chunks, {text_length} chars'
+                    )
+
                 else:
                     async for result in runner.run(query):
                         query.resp_messages.append(result)
 
-                        self.ap.logger.info(f'对话({query.query_id})响应: {self.cut_str(result.readable_str())}')
+                        self.ap.logger.info(
+                            f'Conversation({query.query_id}) Response: {self.cut_str(result.readable_str())}'
+                        )
 
                         if result.content is not None:
                             text_length += len(result.content)
@@ -113,7 +140,7 @@ class ChatMessageHandler(handler.MessageHandler):
 
                 query.session.using_conversation.messages.extend(query.resp_messages)
             except Exception as e:
-                self.ap.logger.error(f'对话({query.query_id})请求失败: {type(e).__name__} {str(e)}')
+                self.ap.logger.error(f'Conversation({query.query_id}) Request Failed: {type(e).__name__} {str(e)}')
                 traceback.print_exc()
 
                 hide_exception_info = query.pipeline_config['output']['misc']['hide-exception']

@@ -65,6 +65,10 @@ class WebSocketAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter)
     outbound_message_queue: asyncio.Queue = pydantic.Field(default_factory=asyncio.Queue, exclude=True)
     """后端主动推送消息的队列"""
 
+    # 流式输出开关
+    stream_enabled: bool = pydantic.Field(default=True, exclude=True)
+    """是否启用流式输出"""
+
     def __init__(self, config: dict, logger: abstract_platform_logger.AbstractEventLogger, **kwargs):
         super().__init__(
             config=config,
@@ -77,6 +81,7 @@ class WebSocketAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter)
 
         self.bot_account_id = 'websocketbot'
         self.outbound_message_queue = asyncio.Queue()
+        self.stream_enabled = True
 
     async def send_message(
         self,
@@ -96,8 +101,6 @@ class WebSocketAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter)
 
         # 推送到所有相关连接
         await self.outbound_message_queue.put(message_data)
-
-        await self.logger.info(f'Send message to {target_id}: {message}')
 
         return message_data
 
@@ -214,8 +217,8 @@ class WebSocketAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter)
         return message_data.model_dump()
 
     async def is_stream_output_supported(self) -> bool:
-        """WebSocket始终支持流式输出"""
-        return True
+        """根据stream_enabled标志返回是否支持流式输出"""
+        return self.stream_enabled
 
     def register_listener(
         self,
@@ -242,7 +245,6 @@ class WebSocketAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter)
 
     async def run_async(self):
         """运行适配器"""
-        await self.logger.info('WebSocket适配器已启动')
 
         try:
             while True:
@@ -258,12 +260,11 @@ class WebSocketAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter)
 
                 await asyncio.sleep(0.1)
         except asyncio.CancelledError:
-            await self.logger.info('WebSocket适配器已停止')
             raise
 
     async def kill(self):
         """停止适配器"""
-        await self.logger.info('WebSocket适配器正在停止')
+        pass
 
     async def _process_image_components(self, message_chain_obj: list):
         """
@@ -318,10 +319,15 @@ class WebSocketAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter)
 
         Args:
             connection: WebSocket连接对象
-            message_data: 消息数据
+            message_data: 消息数据，包含:
+                - message: 消息链
+                - stream: 是否启用流式输出 (可选，默认True)
         """
         pipeline_uuid = connection.pipeline_uuid
         session_type = connection.session_type
+
+        # 获取stream参数，默认为True
+        self.stream_enabled = message_data.get('stream', True)
 
         # 选择会话
         use_session = self.websocket_group_session if session_type == 'group' else self.websocket_person_session

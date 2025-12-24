@@ -12,7 +12,16 @@ import langbotIcon from '@/app/assets/langbot-logo.webp';
 import { systemInfo } from '@/app/infra/http/HttpClient';
 import { getCloudServiceClientSync } from '@/app/infra/http';
 import { useTranslation } from 'react-i18next';
-import { Moon, Sun, Monitor } from 'lucide-react';
+import {
+  Moon,
+  Sun,
+  Monitor,
+  CircleHelp,
+  Lightbulb,
+  Lock,
+  LogOut,
+  KeyRound,
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 import {
@@ -26,6 +35,28 @@ import { LanguageSelector } from '@/components/ui/language-selector';
 import { Badge } from '@/components/ui/badge';
 import PasswordChangeDialog from '@/app/home/components/password-change-dialog/PasswordChangeDialog';
 import ApiIntegrationDialog from '@/app/home/components/api-integration-dialog/ApiIntegrationDialog';
+import NewVersionDialog from '@/app/home/components/new-version-dialog/NewVersionDialog';
+import { GitHubRelease } from '@/app/infra/http/CloudServiceClient';
+
+// Compare two version strings, returns true if v1 > v2
+function compareVersions(v1: string, v2: string): boolean {
+  // Remove 'v' prefix if present
+  const clean1 = v1.replace(/^v/, '');
+  const clean2 = v2.replace(/^v/, '');
+
+  const parts1 = clean1.split('.').map((p) => parseInt(p, 10) || 0);
+  const parts2 = clean2.split('.').map((p) => parseInt(p, 10) || 0);
+
+  const maxLen = Math.max(parts1.length, parts2.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    const p1 = parts1[i] || 0;
+    const p2 = parts2[i] || 0;
+    if (p1 > p2) return true;
+    if (p1 < p2) return false;
+  }
+  return false;
+}
 
 // TODO 侧边导航栏要加动画
 export default function HomeSidebar({
@@ -49,6 +80,11 @@ export default function HomeSidebar({
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [languageSelectorOpen, setLanguageSelectorOpen] = useState(false);
   const [starCount, setStarCount] = useState<number | null>(null);
+  const [latestRelease, setLatestRelease] = useState<GitHubRelease | null>(
+    null,
+  );
+  const [hasNewVersion, setHasNewVersion] = useState(false);
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
 
   useEffect(() => {
     initSelect();
@@ -65,6 +101,28 @@ export default function HomeSidebar({
       })
       .catch((error) => {
         console.error('Failed to fetch GitHub star count:', error);
+      });
+
+    // Fetch releases to check for new version
+    getCloudServiceClientSync()
+      .getLangBotReleases()
+      .then((releases) => {
+        if (releases && releases.length > 0) {
+          // Find the latest non-prerelease, non-draft release
+          const latestStable = releases.find((r) => !r.prerelease && !r.draft);
+          const latest = latestStable || releases[0];
+          setLatestRelease(latest);
+
+          // Compare versions
+          const currentVersion = systemInfo?.version;
+          if (currentVersion && latest.tag_name) {
+            const isNewer = compareVersions(latest.tag_name, currentVersion);
+            setHasNewVersion(isNewer);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch releases:', error);
       });
   }, []);
 
@@ -129,8 +187,18 @@ export default function HomeSidebar({
           {/* 文字 */}
           <div className={`${styles.langbotTextContainer}`}>
             <div className={`${styles.langbotText}`}>LangBot</div>
-            <div className={`${styles.langbotVersion}`}>
-              {systemInfo?.version}
+            <div className="flex items-center gap-1.5">
+              <div className={`${styles.langbotVersion}`}>
+                {systemInfo?.version}
+              </div>
+              {hasNewVersion && (
+                <Badge
+                  onClick={() => setVersionDialogOpen(true)}
+                  className="bg-red-500 hover:bg-red-600 text-white text-[0.6rem] px-1.5 py-0 h-4 cursor-pointer"
+                >
+                  {t('plugins.new')}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -183,23 +251,6 @@ export default function HomeSidebar({
             </Badge>
           </div>
         )}
-
-        <SidebarChild
-          onClick={() => {
-            setApiKeyDialogOpen(true);
-          }}
-          isSelected={false}
-          icon={
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M10.7577 11.8281L18.6066 3.97919L20.0208 5.3934L18.6066 6.80761L21.0815 9.28249L19.6673 10.6967L17.1924 8.22183L15.7782 9.63604L17.8995 11.7574L16.4853 13.1716L14.364 11.0503L12.1719 13.2423C13.4581 15.1837 13.246 17.8251 11.5355 19.5355C9.58291 21.4882 6.41709 21.4882 4.46447 19.5355C2.51184 17.5829 2.51184 14.4171 4.46447 12.4645C6.17493 10.754 8.81633 10.5419 10.7577 11.8281ZM10.1213 18.1213C11.2929 16.9497 11.2929 15.0503 10.1213 13.8787C8.94975 12.7071 7.05025 12.7071 5.87868 13.8787C4.70711 15.0503 4.70711 16.9497 5.87868 18.1213C7.05025 19.2929 8.94975 19.2929 10.1213 18.1213Z"></path>
-            </svg>
-          }
-          name={t('common.apiIntegration')}
-        />
 
         <Popover
           open={popoverOpen}
@@ -263,6 +314,23 @@ export default function HomeSidebar({
             </div>
 
             <div className="flex flex-col gap-2 w-full">
+              <span className="text-sm font-medium">
+                {t('common.integration')}
+              </span>
+              <Button
+                variant="ghost"
+                className="w-full justify-start font-normal"
+                onClick={() => {
+                  setApiKeyDialogOpen(true);
+                  setPopoverOpen(false);
+                }}
+              >
+                <KeyRound className="w-4 h-4 mr-2" />
+                {t('common.apiIntegration')}
+              </Button>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full">
               <span className="text-sm font-medium">{t('common.account')}</span>
               <Button
                 variant="ghost"
@@ -289,34 +357,36 @@ export default function HomeSidebar({
                   setPopoverOpen(false);
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-4 h-4 mr-2"
-                >
-                  <path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 15H13V17H11V15ZM13 13.3551V14H11V12.5C11 11.9477 11.4477 11.5 12 11.5C12.8284 11.5 13.5 10.8284 13.5 10C13.5 9.17157 12.8284 8.5 12 8.5C11.2723 8.5 10.6656 9.01823 10.5288 9.70577L8.56731 9.31346C8.88637 7.70919 10.302 6.5 12 6.5C13.933 6.5 15.5 8.067 15.5 10C15.5 11.5855 14.4457 12.9248 13 13.3551Z"></path>
-                </svg>
+                <CircleHelp className="w-4 h-4 mr-2" />
                 {t('common.helpDocs')}
               </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start font-normal"
                 onClick={() => {
-                  setPasswordChangeOpen(true);
+                  window.open(
+                    'https://github.com/langbot-app/LangBot/issues',
+                    '_blank',
+                  );
                   setPopoverOpen(false);
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-4 h-4 mr-2"
-                >
-                  <path d="M6 8V7C6 3.68629 8.68629 1 12 1C15.3137 1 18 3.68629 18 7V8H20C20.5523 8 21 8.44772 21 9V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V9C3 8.44772 3.44772 8 4 8H6ZM19 10H5V20H19V10ZM11 15.7324C10.4022 15.3866 10 14.7403 10 14C10 12.8954 10.8954 12 12 12C13.1046 12 14 12.8954 14 14C14 14.7403 13.5978 15.3866 13 15.7324V18H11V15.7324ZM8 8H16V7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7V8Z"></path>
-                </svg>
-                {t('common.changePassword')}
+                <Lightbulb className="w-4 h-4 mr-2" />
+                {t('common.featureRequest')}
               </Button>
+              {systemInfo?.allow_change_password && (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start font-normal"
+                  onClick={() => {
+                    setPasswordChangeOpen(true);
+                    setPopoverOpen(false);
+                  }}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  {t('common.changePassword')}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 className="w-full justify-start font-normal"
@@ -324,14 +394,7 @@ export default function HomeSidebar({
                   handleLogout();
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-4 h-4 mr-2"
-                >
-                  <path d="M4 18H6V20H18V4H6V6H4V3C4 2.44772 4.44772 2 5 2H19C19.5523 2 20 2.44772 20 3V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V18ZM6 11H13V13H6V16L1 12L6 8V11Z"></path>
-                </svg>
+                <LogOut className="w-4 h-4 mr-2" />
                 {t('common.logout')}
               </Button>
             </div>
@@ -345,6 +408,11 @@ export default function HomeSidebar({
       <ApiIntegrationDialog
         open={apiKeyDialogOpen}
         onOpenChange={setApiKeyDialogOpen}
+      />
+      <NewVersionDialog
+        open={versionDialogOpen}
+        onOpenChange={setVersionDialogOpen}
+        release={latestRelease}
       />
     </div>
   );

@@ -2,8 +2,9 @@ const zhHans = {
   common: {
     login: '登录',
     logout: '退出登录',
-    accountOptions: '账户选项',
+    accountOptions: '系统设置',
     account: '账户',
+    integration: '连接',
     email: '邮箱',
     password: '密码',
     welcome: '欢迎回到 LangBot 👋',
@@ -16,6 +17,7 @@ const zhHans = {
     emptyPassword: '请输入密码',
     language: '语言',
     helpDocs: '帮助文档',
+    featureRequest: '需求建议',
     create: '创建',
     edit: '编辑',
     delete: '删除',
@@ -142,6 +144,7 @@ const zhHans = {
     modelManufacturer: '模型厂商',
     aggregationPlatform: '中转平台',
     selfDeployed: '自部署',
+    builtin: '内置',
     selectModel: '请选择模型',
     testSuccess: '测试成功',
     testError: '测试失败，请检查模型配置',
@@ -187,6 +190,10 @@ const zhHans = {
     webhookUrlCopied: 'Webhook 地址已复制',
     webhookUrlHint:
       '点击输入框自动全选，然后按 Ctrl+C (Mac: Cmd+C) 复制，或点击右侧按钮',
+    logLevel: '日志级别',
+    allLevels: '全部级别',
+    selectLevel: '选择级别',
+    levelsSelected: '个级别已选',
   },
   plugins: {
     title: '插件扩展',
@@ -271,6 +278,7 @@ const zhHans = {
     noComponents: '无组件',
     delete: '删除插件',
     update: '更新插件',
+    new: '新',
     updateConfirm: '更新确认',
     confirmUpdatePlugin: '你确定要更新插件（{{author}}/{{name}}）吗？',
     confirmUpdate: '确认更新',
@@ -477,6 +485,9 @@ const zhHans = {
     defaultPipelineCannotDelete: '默认流水线不可删除',
     deleteSuccess: '删除成功',
     deleteError: '删除失败：',
+    copyConfirmTitle: '确认复制',
+    copyConfirmation:
+      '确定要复制这个流水线吗？复制将创建一个包含完整配置的新流水线。',
     extensions: {
       title: '扩展集成',
       loadError: '加载插件列表失败',
@@ -520,6 +531,7 @@ const zhHans = {
       loadPipelinesFailed: '加载流水线失败',
       atTips: '提及机器人',
       streaming: '流式传输',
+      streamOutput: '流式',
       connected: 'WebSocket已连接',
       disconnected: 'WebSocket未连接',
       connectionError: 'WebSocket连接错误',
@@ -699,6 +711,11 @@ const zhHans = {
     description: '管理 LLM 模型，用于对话消息生成',
     extraParametersDescription:
       '将在请求时附加到请求体中，如 max_tokens, temperature, top_p 等',
+  },
+  version: {
+    newVersionAvailable: '有新版本可用',
+    viewUpdateGuide: '查看更新方式',
+    noReleaseNotes: '暂无更新日志',
   },
 };
 
