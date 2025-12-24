@@ -646,6 +646,47 @@ export class BackendClient extends BaseHttpClient {
     return this.get('/api/v1/plugins/debug-info');
   }
 
+  // ============ Workflow API ============
+  public getWorkflows(): Promise<{ workflows: any[] }> {
+    return this.get('/api/v1/workflow');
+  }
+
+  public getWorkflow(workflowId: string): Promise<{ workflow: any }> {
+    return this.get(`/api/v1/workflow/${workflowId}`);
+  }
+
+  public createWorkflow(workflow: any): Promise<{ workflow: any }> {
+    return this.post('/api/v1/workflow', workflow);
+  }
+
+  public updateWorkflow(workflowId: string, workflow: any): Promise<{ workflow: any }> {
+    return this.put(`/api/v1/workflow/update/${workflowId}`, workflow);
+  }
+
+  public deleteWorkflow(workflowId: string): Promise<object> {
+    return this.delete(`/api/v1/workflow/${workflowId}`);
+  }
+
+  public executeWorkflow(workflowId: string, triggerData: any): Promise<any> {
+    return this.post(`/api/v1/workflow/${workflowId}/execute`, triggerData);
+  }
+
+  public exportWorkflow(workflowId: string): Promise<Blob> {
+    return this.request<Blob>({
+      method: 'get',
+      url: `/api/v1/workflow/${workflowId}/export`,
+      responseType: 'blob',
+    });
+  }
+
+  public getWorkflowNodes(): Promise<{ nodes: any[] }> {
+    return this.get('/api/v1/workflow/nodes');
+  }
+
+  public getWorkflowMetadata(): Promise<any> {
+    return this.get('/api/v1/workflow/metadata');
+  }
+
   // ============ User API ============
   public checkIfInited(): Promise<{ initialized: boolean }> {
     return this.get('/api/v1/user/init');
