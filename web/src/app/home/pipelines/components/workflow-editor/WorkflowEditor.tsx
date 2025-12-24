@@ -10,23 +10,21 @@ import {
   useEdgesState,
   addEdge,
   Connection,
-  Edge,
   Node,
+  Edge,
   BackgroundVariant,
   Panel,
   NodeTypes,
-  EdgeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Save, X, Plus, Settings, Play } from 'lucide-react';
+import { Save, X, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { httpClient } from '@/app/infra/http/HttpClient';
 import { extractI18nObject } from '@/i18n/I18nProvider';
+import { useTheme } from 'next-themes';
 import NodePalette from './NodePalette';
 import NodeConfigPanel from './NodeConfigPanel';
 import CustomNode from './CustomNode';
@@ -47,6 +45,17 @@ interface NodeManifest {
   };
 }
 
+interface CustomNodeData {
+  label: string;
+  type: string;
+  config?: Record<string, any>;
+  description?: string;
+  [key: string]: unknown;
+}
+
+type WorkflowNode = Node<CustomNodeData>;
+type WorkflowEdge = Edge<{ condition?: any }>;
+
 // Define custom node types
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
@@ -55,13 +64,16 @@ const nodeTypes: NodeTypes = {
 export default function WorkflowEditor({ workflow, onSave, onClose }: WorkflowEditorProps) {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const { resolvedTheme } = useTheme();
+  const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdge>([]);
+  const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
   const [workflowName, setWorkflowName] = useState(workflow.name);
-  const [workflowDescription, setWorkflowDescription] = useState(workflow.description || '');
+  const [workflowDescription] = useState(workflow.description || '');
   const [isSaving, setIsSaving] = useState(false);
   const [nodeManifests, setNodeManifests] = useState<Record<string, NodeManifest>>({});
+
+  const isDark = resolvedTheme === 'dark';
 
   useEffect(() => {
     // Load node manifests and workflow data
@@ -137,22 +149,24 @@ export default function WorkflowEditor({ workflow, onSave, onClose }: WorkflowEd
 
   const onConnect = useCallback(
     (params: Connection) => {
-      const newEdge = {
+      const newEdge: WorkflowEdge = {
         ...params,
         id: `edge-${Date.now()}`,
         type: 'smoothstep',
+        source: params.source ?? '',
+        target: params.target ?? '',
       };
-      setEdges((eds) => addEdge(newEdge, eds));
+      setEdges((eds) => addEdge(newEdge, eds) as WorkflowEdge[]);
     },
     [setEdges]
   );
 
-  const onNodeClick = useCallback((_: any, node: Node) => {
+  const onNodeClick = useCallback((_: any, node: WorkflowNode) => {
     setSelectedNode(node);
   }, []);
 
   const onNodeDragStop = useCallback(
-    (_: any, node: Node) => {
+    (_: any, node: WorkflowNode) => {
       // Update node position
       const updatedNodes = nodes.map((n) =>
         n.id === node.id ? { ...n, position: node.position } : n
@@ -172,7 +186,7 @@ export default function WorkflowEditor({ workflow, onSave, onClose }: WorkflowEd
       label = extractI18nObject(manifest.label);
     }
 
-    const newNode: Node = {
+    const newNode: WorkflowNode = {
       id: `node-${Date.now()}`,
       type: 'custom',
       position: {
@@ -291,7 +305,12 @@ export default function WorkflowEditor({ workflow, onSave, onClose }: WorkflowEd
           nodeTypes={nodeTypes}
           fitView
         >
-          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={12}
+            size={1}
+            color={isDark ? '#4b5563' : '#d1d5db'}
+          />
           <MiniMap />
           <Controls />
 
