@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: chat_command_branch
+  label:
+    en_US: Chat/Command Branch
+    zh_Hans: 聊天/命令分支
+    zh_Hant: 聊天/命令分支
+  description:
+    en_US: Branch based on message type (chat or command)
+    zh_Hans: 根据消息类型分支（聊天或命令）
+    zh_Hant: 根據消息類型分支（聊天或命令）
+spec:
+  category: control
+  type: branch
+  color: '#00BCD4'
+  icon: git-merge
+  inputs:
+    - name: message
+      type: object
+      description:
+        en_US: Message data
+        zh_Hans: 消息数据
+        zh_Hant: 消息數據
+  outputs:
+    - name: type
+      type: string
+      description:
+        en_US: Message type (chat or command)
+        zh_Hans: 消息类型（聊天或命令）
+        zh_Hant: 消息類型（聊天或命令）
+    - name: branch
+      type: string
+      description:
+        en_US: Selected branch
+        zh_Hans: 选中的分支
+        zh_Hant: 選中的分支
+  configSchema:
+    type: object
+    properties:
+      command_prefix:
+        type: string
+        title:
+          en_US: Command Prefix
+          zh_Hans: 命令前缀
+          zh_Hant: 命令前綴
+        description:
+          en_US: Prefix character for commands (e.g., "/")
+          zh_Hans: 命令前缀字符（例如："/"）
+          zh_Hant: 命令前綴字符（例如："/"）
+        default: "/"

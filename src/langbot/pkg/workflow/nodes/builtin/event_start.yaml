@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: event_start
+  label:
+    en_US: Event Start
+    zh_Hans: 事件触发
+    zh_Hant: 事件觸發
+    ja_JP: イベント開始
+  description:
+    en_US: Start workflow when a message event is received
+    zh_Hans: 当收到消息事件时启动工作流
+    zh_Hant: 當收到訊息事件時啟動工作流程
+    ja_JP: メッセージイベントを受信したときにワークフローを開始
+  icon: play-circle
+spec:
+  category: start
+  color: "#4CAF50"
+  inputs: []
+  outputs:
+    - name: trigger
+      label:
+        en_US: Trigger
+        zh_Hans: 触发器
+        zh_Hant: 觸發器
+        ja_JP: トリガー
+      type: any
+      required: false
+      multiple: true
+  config:
+    - name: trigger_type
+      label:
+        en_US: Trigger Type
+        zh_Hans: 触发类型
+        zh_Hant: 觸發類型
+        ja_JP: トリガータイプ
+      type: enum
+      enum:
+        - value: person_message
+          label:
+            en_US: Person Message
+            zh_Hans: 个人消息
+            zh_Hant: 個人訊息
+            ja_JP: 個人メッセージ
+        - value: group_message
+          label:
+            en_US: Group Message
+            zh_Hans: 群组消息
+            zh_Hant: 群組訊息
+            ja_JP: グループメッセージ
+      required: true
+    - name: filters
+      label:
+        en_US: Event Filters
+        zh_Hans: 事件过滤器
+        zh_Hant: 事件過濾器
+        ja_JP: イベントフィルター
+      type: object
+      required: false
+execution:
+  python:
+    path: ./event_start.py
+    attr: EventStartNode

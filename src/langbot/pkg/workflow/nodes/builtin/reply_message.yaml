@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: reply_message
+  label:
+    en_US: Reply Message
+    zh_Hans: 回复消息
+    zh_Hant: 回覆訊息
+    ja_JP: メッセージ返信
+  description:
+    en_US: Send a reply message to the chat
+    zh_Hans: 向聊天发送回复消息
+    zh_Hant: 向聊天傳送回覆訊息
+    ja_JP: チャットに返信メッセージを送信
+  icon: message-square
+spec:
+  category: action
+  color: "#2196F3"
+  inputs:
+    - name: input
+      label:
+        en_US: Input
+        zh_Hans: 输入
+        zh_Hant: 輸入
+        ja_JP: 入力
+      type: any
+      required: true
+      multiple: false
+  outputs:
+    - name: output
+      label:
+        en_US: Output
+        zh_Hans: 输出
+        zh_Hant: 輸出
+        ja_JP: 出力
+      type: any
+      required: false
+      multiple: true
+  config:
+    - name: content
+      label:
+        en_US: Message Content
+        zh_Hans: 消息内容
+        zh_Hant: 訊息內容
+        ja_JP: メッセージ内容
+      description:
+        en_US: The content to reply (supports variables)
+        zh_Hans: 要回复的内容（支持变量）
+        zh_Hant: 要回覆的內容（支援變數）
+        ja_JP: 返信する内容（変数対応）
+      type: string
+      required: true
+    - name: reply_to
+      label:
+        en_US: Reply To
+        zh_Hans: 回复给
+        zh_Hant: 回覆給
+        ja_JP: 返信先
+      description:
+        en_US: Message ID to reply to (optional)
+        zh_Hans: 要回复的消息ID（可选）
+        zh_Hant: 要回覆的訊息ID（可選）
+        ja_JP: 返信するメッセージID（オプション）
+      type: string
+      required: false
+execution:
+  python:
+    path: ./reply_message.py
+    attr: ReplyMessageNode

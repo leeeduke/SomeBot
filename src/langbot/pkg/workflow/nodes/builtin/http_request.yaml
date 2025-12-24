@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: http_request
+  label:
+    en_US: HTTP Request
+    zh_Hans: HTTP 请求
+    zh_Hant: HTTP 請求
+    ja_JP: HTTPリクエスト
+  description:
+    en_US: Make HTTP requests to external services
+    zh_Hans: 向外部服务发送HTTP请求
+    zh_Hant: 向外部服務發送HTTP請求
+    ja_JP: 外部サービスにHTTPリクエストを送信
+  icon: globe
+spec:
+  category: action
+  color: "#9C27B0"
+  inputs:
+    - name: input
+      label:
+        en_US: Input
+        zh_Hans: 输入
+        zh_Hant: 輸入
+        ja_JP: 入力
+      type: any
+      required: false
+      multiple: false
+  outputs:
+    - name: output
+      label:
+        en_US: Response
+        zh_Hans: 响应
+        zh_Hant: 回應
+        ja_JP: レスポンス
+      type: any
+      required: false
+      multiple: true
+  config:
+    - name: method
+      label:
+        en_US: Method
+        zh_Hans: 请求方法
+        zh_Hant: 請求方法
+        ja_JP: メソッド
+      type: enum
+      enum:
+        - value: GET
+          label:
+            en_US: GET
+            zh_Hans: GET
+            zh_Hant: GET
+            ja_JP: GET
+        - value: POST
+          label:
+            en_US: POST
+            zh_Hans: POST
+            zh_Hant: POST
+            ja_JP: POST
+        - value: PUT
+          label:
+            en_US: PUT
+            zh_Hans: PUT
+            zh_Hant: PUT
+            ja_JP: PUT
+        - value: DELETE
+          label:
+            en_US: DELETE
+            zh_Hans: DELETE
+            zh_Hant: DELETE
+            ja_JP: DELETE
+        - value: PATCH
+          label:
+            en_US: PATCH
+            zh_Hans: PATCH
+            zh_Hant: PATCH
+            ja_JP: PATCH
+      default: GET
+      required: true
+    - name: url
+      label:
+        en_US: URL
+        zh_Hans: URL地址
+        zh_Hant: URL位址
+        ja_JP: URL
+      description:
+        en_US: The URL to request
+        zh_Hans: 要请求的URL
+        zh_Hant: 要請求的URL
+        ja_JP: リクエストするURL
+      type: string
+      required: true
+    - name: headers
+      label:
+        en_US: Headers
+        zh_Hans: 请求头
+        zh_Hant: 請求標頭
+        ja_JP: ヘッダー
+      type: object
+      required: false
+    - name: body
+      label:
+        en_US: Body
+        zh_Hans: 请求体
+        zh_Hant: 請求內容
+        ja_JP: ボディ
+      description:
+        en_US: Request body (JSON)
+        zh_Hans: 请求体（JSON）
+        zh_Hant: 請求內容（JSON）
+        ja_JP: リクエストボディ（JSON）
+      type: string
+      required: false
+    - name: timeout
+      label:
+        en_US: Timeout (s)
+        zh_Hans: 超时时间（秒）
+        zh_Hant: 逾時時間（秒）
+        ja_JP: タイムアウト（秒）
+      type: number
+      default: 30
+      required: false
+execution:
+  python:
+    path: ./http_request.py
+    attr: HttpRequestNode

@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: set_variable
+  label:
+    en_US: Set Variable
+    zh_Hans: 设置变量
+    zh_Hant: 設置變量
+  description:
+    en_US: Set a workflow variable
+    zh_Hans: 设置工作流变量
+    zh_Hant: 設置工作流變量
+spec:
+  category: action
+  type: variable
+  color: '#FF5722'
+  icon: variable
+  inputs:
+    - name: value
+      type: any
+      description:
+        en_US: Value to set
+        zh_Hans: 要设置的值
+        zh_Hant: 要設置的值
+  outputs:
+    - name: variable
+      type: string
+      description:
+        en_US: Variable name
+        zh_Hans: 变量名
+        zh_Hant: 變量名
+    - name: value
+      type: any
+      description:
+        en_US: Variable value
+        zh_Hans: 变量值
+        zh_Hant: 變量值
+  configSchema:
+    type: object
+    properties:
+      variable_name:
+        type: string
+        title:
+          en_US: Variable Name
+          zh_Hans: 变量名
+          zh_Hant: 變量名
+        description:
+          en_US: Name of the variable to set
+          zh_Hans: 要设置的变量名
+          zh_Hant: 要設置的變量名
+      value:
+        type: any
+        title:
+          en_US: Value
+          zh_Hans: 值
+          zh_Hant: 值
+        description:
+          en_US: Value to assign to the variable
+          zh_Hans: 要赋给变量的值
+          zh_Hant: 要賦給變量的值
+    required: ["variable_name"]

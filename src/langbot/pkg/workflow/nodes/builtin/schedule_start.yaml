@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: schedule_start
+  label:
+    en_US: Schedule Start
+    zh_Hans: 定时触发
+    zh_Hant: 定時觸發
+  description:
+    en_US: Triggered by scheduled cron expression
+    zh_Hans: 通过定时表达式触发工作流
+    zh_Hant: 通過定時表達式觸發工作流
+spec:
+  category: start
+  type: trigger
+  color: '#FF9800'
+  icon: clock
+  inputs: []
+  outputs:
+    - name: triggered_at
+      type: string
+      description:
+        en_US: Time when triggered
+        zh_Hans: 触发时间
+        zh_Hant: 觸發時間
+    - name: cron_expression
+      type: string
+      description:
+        en_US: Cron expression
+        zh_Hans: Cron表达式
+        zh_Hant: Cron表達式
+  configSchema:
+    type: object
+    properties:
+      cron_expression:
+        type: string
+        title:
+          en_US: Cron Expression
+          zh_Hans: Cron表达式
+          zh_Hant: Cron表達式
+        description:
+          en_US: Standard cron expression (e.g., "0 * * * *" for hourly)
+          zh_Hans: 标准Cron表达式（例如："0 * * * *" 表示每小时）
+          zh_Hant: 標準Cron表達式（例如："0 * * * *" 表示每小時）
+        default: "0 * * * *"
+      timezone:
+        type: string
+        title:
+          en_US: Timezone
+          zh_Hans: 时区
+          zh_Hant: 時區
+        description:
+          en_US: Timezone for the schedule (e.g., "UTC", "Asia/Shanghai")
+          zh_Hans: 计划任务的时区（例如："UTC"、"Asia/Shanghai"）
+          zh_Hant: 計劃任務的時區（例如："UTC"、"Asia/Shanghai"）
+        default: "UTC"
+    required: ["cron_expression"]

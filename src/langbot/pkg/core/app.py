@@ -26,6 +26,7 @@ from ..api.http.service import knowledge as knowledge_service
 from ..api.http.service import mcp as mcp_service
 from ..api.http.service import apikey as apikey_service
 from ..api.http.service import webhook as webhook_service
+from ..api.http.service import workflow as workflow_service
 from ..api.http.service import external_kb as external_kb_service
 from ..discover import engine as discover_engine
 from ..storage import mgr as storagemgr
@@ -131,6 +132,10 @@ class Application:
     apikey_service: apikey_service.ApiKeyService = None
 
     webhook_service: webhook_service.WebhookService = None
+
+    workflow_service: workflow_service.WorkflowService = None
+
+    workflow_manager = None  # WorkflowManager instance
 
     def __init__(self):
         pass

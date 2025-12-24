@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: get_variable
+  label:
+    en_US: Get Variable
+    zh_Hans: 获取变量
+    zh_Hant: 獲取變量
+  description:
+    en_US: Get a workflow variable value
+    zh_Hans: 获取工作流变量值
+    zh_Hant: 獲取工作流變量值
+spec:
+  category: action
+  type: variable
+  color: '#FF5722'
+  icon: variable
+  inputs: []
+  outputs:
+    - name: variable
+      type: string
+      description:
+        en_US: Variable name
+        zh_Hans: 变量名
+        zh_Hant: 變量名
+    - name: value
+      type: any
+      description:
+        en_US: Variable value
+        zh_Hans: 变量值
+        zh_Hant: 變量值
+  configSchema:
+    type: object
+    properties:
+      variable_name:
+        type: string
+        title:
+          en_US: Variable Name
+          zh_Hans: 变量名
+          zh_Hant: 變量名
+        description:
+          en_US: Name of the variable to get
+          zh_Hans: 要获取的变量名
+          zh_Hant: 要獲取的變量名
+      default:
+        type: any
+        title:
+          en_US: Default Value
+          zh_Hans: 默认值
+          zh_Hant: 默認值
+        description:
+          en_US: Default value if variable doesn't exist
+          zh_Hans: 变量不存在时的默认值
+          zh_Hant: 變量不存在時的默認值
+    required: ["variable_name"]
