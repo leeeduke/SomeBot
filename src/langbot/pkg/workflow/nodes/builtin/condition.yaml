@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: condition
+  label:
+    en_US: Condition
+    zh_Hans: 条件判断
+    zh_Hant: 條件判斷
+    ja_JP: 条件分岐
+  description:
+    en_US: Branch workflow based on conditions
+    zh_Hans: 根据条件分支工作流
+    zh_Hant: 根據條件分支工作流程
+    ja_JP: 条件に基づいてワークフローを分岐
+  icon: git-branch
+spec:
+  category: control
+  color: "#FF9800"
+  inputs:
+    - name: input
+      label:
+        en_US: Input
+        zh_Hans: 输入
+        zh_Hant: 輸入
+        ja_JP: 入力
+      type: any
+      required: true
+      multiple: false
+  outputs:
+    - name: true
+      label:
+        en_US: True
+        zh_Hans: 真
+        zh_Hant: 真
+        ja_JP: 真
+      type: any
+      required: false
+      multiple: true
+    - name: false
+      label:
+        en_US: False
+        zh_Hans: 假
+        zh_Hant: 假
+        ja_JP: 偽
+      type: any
+      required: false
+      multiple: true
+  config:
+    - name: conditions
+      label:
+        en_US: Conditions
+        zh_Hans: 条件列表
+        zh_Hant: 條件列表
+        ja_JP: 条件リスト
+      type: array
+      items:
+        - name: field
+          label:
+            en_US: Field
+            zh_Hans: 字段
+            zh_Hant: 欄位
+            ja_JP: フィールド
+          type: string
+        - name: operator
+          label:
+            en_US: Operator
+            zh_Hans: 操作符
+            zh_Hant: 運算子
+            ja_JP: 演算子
+          type: enum
+          enum:
+            - value: equals
+              label:
+                en_US: Equals
+                zh_Hans: 等于
+                zh_Hant: 等於
+                ja_JP: 等しい
+            - value: not_equals
+              label:
+                en_US: Not Equals
+                zh_Hans: 不等于
+                zh_Hant: 不等於
+                ja_JP: 等しくない
+            - value: contains
+              label:
+                en_US: Contains
+                zh_Hans: 包含
+                zh_Hant: 包含
+                ja_JP: 含む
+            - value: greater_than
+              label:
+                en_US: Greater Than
+                zh_Hans: 大于
+                zh_Hant: 大於
+                ja_JP: より大きい
+            - value: less_than
+              label:
+                en_US: Less Than
+                zh_Hans: 小于
+                zh_Hant: 小於
+                ja_JP: より小さい
+        - name: value
+          label:
+            en_US: Value
+            zh_Hans: 值
+            zh_Hant: 值
+            ja_JP: 値
+          type: string
+      required: true
+    - name: logic
+      label:
+        en_US: Logic
+        zh_Hans: 逻辑
+        zh_Hant: 邏輯
+        ja_JP: ロジック
+      type: enum
+      enum:
+        - value: and
+          label:
+            en_US: AND
+            zh_Hans: 与
+            zh_Hant: 與
+            ja_JP: AND
+        - value: or
+          label:
+            en_US: OR
+            zh_Hans: 或
+            zh_Hant: 或
+            ja_JP: OR
+      default: and
+      required: false
+execution:
+  python:
+    path: ./condition.py
+    attr: ConditionNode

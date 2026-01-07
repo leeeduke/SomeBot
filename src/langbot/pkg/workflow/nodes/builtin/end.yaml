@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: end
+  label:
+    en_US: End
+    zh_Hans: 结束
+    zh_Hant: 結束
+  description:
+    en_US: End the workflow
+    zh_Hans: 结束工作流
+    zh_Hant: 結束工作流
+spec:
+  category: control
+  type: end
+  color: '#F44336'
+  icon: stop-circle
+  inputs:
+    - name: data
+      type: any
+      description:
+        en_US: Final data
+        zh_Hans: 最终数据
+        zh_Hant: 最終數據
+  outputs:
+    - name: completed
+      type: boolean
+      description:
+        en_US: Completion status
+        zh_Hans: 完成状态
+        zh_Hant: 完成狀態
+    - name: completed_at
+      type: string
+      description:
+        en_US: Completion time
+        zh_Hans: 完成时间
+        zh_Hant: 完成時間
+  configSchema:
+    type: object
+    properties:
+      return_data:
+        type: boolean
+        title:
+          en_US: Return Data
+          zh_Hans: 返回数据
+          zh_Hant: 返回數據
+        description:
+          en_US: Whether to return workflow data on completion
+          zh_Hans: 完成时是否返回工作流数据
+          zh_Hant: 完成時是否返回工作流數據
+        default: true

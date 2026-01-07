@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: WorkflowNode
+metadata:
+  name: json_processor
+  label:
+    en_US: JSON Processor
+    zh_Hans: JSON处理器
+    zh_Hant: JSON處理器
+  description:
+    en_US: Process and manipulate JSON data
+    zh_Hans: 处理和操作JSON数据
+    zh_Hant: 處理和操作JSON數據
+spec:
+  category: action
+  type: processor
+  color: '#9C27B0'
+  icon: file-json
+  inputs:
+    - name: input_data
+      type: any
+      description:
+        en_US: Input data
+        zh_Hans: 输入数据
+        zh_Hant: 輸入數據
+  outputs:
+    - name: result
+      type: any
+      description:
+        en_US: Processed result
+        zh_Hans: 处理结果
+        zh_Hant: 處理結果
+  configSchema:
+    type: object
+    properties:
+      operation:
+        type: string
+        title:
+          en_US: Operation
+          zh_Hans: 操作
+          zh_Hant: 操作
+        enum: ["extract", "set", "serialize", "deserialize"]
+        enumLabels:
+          extract:
+            en_US: Extract Value
+            zh_Hans: 提取值
+            zh_Hant: 提取值
+          set:
+            en_US: Set Value
+            zh_Hans: 设置值
+            zh_Hant: 設置值
+          serialize:
+            en_US: Serialize to String
+            zh_Hans: 序列化为字符串
+            zh_Hant: 序列化為字符串
+          deserialize:
+            en_US: Parse from String
+            zh_Hans: 从字符串解析
+            zh_Hant: 從字符串解析
+        default: "extract"
+      path:
+        type: string
+        title:
+          en_US: JSON Path
+          zh_Hans: JSON路径
+          zh_Hant: JSON路徑
+        description:
+          en_US: Path to the value (e.g., "data.items.0.name")
+          zh_Hans: 值的路径（例如："data.items.0.name"）
+          zh_Hant: 值的路徑（例如："data.items.0.name"）
+      value:
+        type: any
+        title:
+          en_US: Value
+          zh_Hans: 值
+          zh_Hant: 值
+        description:
+          en_US: Value to set (for set operation)
+          zh_Hans: 要设置的值（用于设置操作）
+          zh_Hant: 要設置的值（用於設置操作）
+    required: ["operation"]

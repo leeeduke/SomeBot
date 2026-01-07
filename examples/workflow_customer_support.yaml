@@ -1,0 +1,212 @@
+workflow:
+  id: sample-customer-support
+  name: Customer Support Workflow
+  description: Automated customer support workflow with FAQ handling and ticket creation
+  version: 1
+  status: active
+  trigger_types:
+    - person_message
+    - group_message
+  bot_id: null
+  tags:
+    - customer-support
+    - automation
+  category: Support
+
+  variables:
+    customer_name:
+      type: string
+      default: ""
+    issue_type:
+      type: string
+      default: "general"
+    ticket_id:
+      type: string
+      default: ""
+    faq_matched:
+      type: boolean
+      default: false
+
+  nodes:
+    - id: start-node
+      type: event_start
+      name: Message Received
+      description: Triggered when a message is received
+      position:
+        x: 100
+        y: 100
+      config:
+        trigger_type: person_message
+        filters:
+          platform: null
+
+    - id: extract-info
+      type: json_processor
+      name: Extract User Info
+      description: Extract user information from message
+      position:
+        x: 250
+        y: 100
+      config:
+        operation: extract
+        path: event_data.sender_id
+
+    - id: check-faq
+      type: chat_command_branch
+      name: Check Message Type
+      description: Route based on message type
+      position:
+        x: 400
+        y: 100
+      config: {}
+
+    - id: faq-handler
+      type: http_request
+      name: FAQ Search
+      description: Search FAQ database
+      position:
+        x: 550
+        y: 50
+      config:
+        method: POST
+        url: https://api.example.com/faq/search
+        headers:
+          Content-Type: application/json
+        body:
+          query: "${content}"
+          limit: 5
+
+    - id: check-faq-results
+      type: condition
+      name: FAQ Match Found?
+      description: Check if FAQ returned results
+      position:
+        x: 700
+        y: 50
+      config:
+        conditions:
+          - type: exists
+            field: body.results
+            value: true
+        default_branch: no_match
+
+    - id: send-faq-response
+      type: reply_message
+      name: Send FAQ Answer
+      description: Reply with FAQ answer
+      position:
+        x: 850
+        y: 20
+      config:
+        content: "Here's what I found in our FAQ:\n\n${faq_answer}\n\nDid this answer your question?"
+
+    - id: create-ticket
+      type: http_request
+      name: Create Support Ticket
+      description: Create a new support ticket
+      position:
+        x: 850
+        y: 150
+      config:
+        method: POST
+        url: https://api.example.com/tickets
+        headers:
+          Content-Type: application/json
+          Authorization: Bearer ${API_KEY}
+        body:
+          customer_id: "${sender_id}"
+          message: "${content}"
+          priority: medium
+          status: open
+
+    - id: save-ticket-id
+      type: set_variable
+      name: Save Ticket ID
+      description: Store ticket ID for reference
+      position:
+        x: 1000
+        y: 150
+      config:
+        variable_name: ticket_id
+        value: null  # Will use previous node output
+
+    - id: send-ticket-response
+      type: reply_message
+      name: Send Ticket Confirmation
+      description: Confirm ticket creation
+      position:
+        x: 1150
+        y: 150
+      config:
+        content: "I've created a support ticket for you. Your ticket ID is: ${ticket_id}\n\nOur support team will respond within 24 hours."
+
+    - id: end-node
+      type: end
+      name: End Workflow
+      description: Workflow completed
+      position:
+        x: 1300
+        y: 100
+      config: {}
+
+  edges:
+    - id: edge-1
+      source: start-node
+      target: extract-info
+
+    - id: edge-2
+      source: extract-info
+      target: check-faq
+
+    - id: edge-3
+      source: check-faq
+      target: faq-handler
+      label: chat
+
+    - id: edge-4
+      source: check-faq
+      target: create-ticket
+      label: command
+
+    - id: edge-5
+      source: faq-handler
+      target: check-faq-results
+
+    - id: edge-6
+      source: check-faq-results
+      target: send-faq-response
+      label: match_found
+      condition:
+        type: equals
+        field: branch
+        value: condition_0
+
+    - id: edge-7
+      source: check-faq-results
+      target: create-ticket
+      label: no_match
+      condition:
+        type: equals
+        field: branch
+        value: default
+
+    - id: edge-8
+      source: create-ticket
+      target: save-ticket-id
+
+    - id: edge-9
+      source: save-ticket-id
+      target: send-ticket-response
+
+    - id: edge-10
+      source: send-faq-response
+      target: end-node
+
+    - id: edge-11
+      source: send-ticket-response
+      target: end-node
+
+  metadata:
+    created_at: "2024-12-07T10:00:00Z"
+    updated_at: "2024-12-07T10:00:00Z"
+    created_by: admin@example.com

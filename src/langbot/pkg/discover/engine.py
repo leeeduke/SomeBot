@@ -162,6 +162,9 @@ class Component(pydantic.BaseModel):
 
     def get_python_component_class(self) -> typing.Type[typing.Any]:
         """获取Python组件类"""
+        if self.execution is None:
+            raise ValueError(f"Component {self.metadata.name} does not have execution configuration")
+
         module_path = os.path.join(self.rel_dir, self.execution.python.path)
         if module_path.endswith('.py'):
             module_path = module_path[:-3]

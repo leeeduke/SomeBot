@@ -1,0 +1,91 @@
+workflow:
+  id: sample-echo-workflow
+  name: Simple Echo Workflow
+  description: A basic workflow that echoes messages with a greeting
+  version: 1
+  status: active
+  trigger_types:
+    - person_message
+  bot_id: null
+  tags:
+    - example
+    - simple
+  category: Examples
+
+  variables:
+    user_message:
+      type: string
+      default: ""
+    response_count:
+      type: integer
+      default: 0
+
+  nodes:
+    - id: start
+      type: event_start
+      name: Receive Message
+      position:
+        x: 100
+        y: 200
+      config:
+        trigger_type: person_message
+
+    - id: save-message
+      type: set_variable
+      name: Save User Message
+      position:
+        x: 300
+        y: 200
+      config:
+        variable_name: user_message
+        value: null  # Will use trigger data
+
+    - id: greeting-reply
+      type: reply_message
+      name: Send Greeting
+      position:
+        x: 500
+        y: 200
+      config:
+        content: "Hello! I received your message: '${user_message}'. How can I help you today?"
+
+    - id: increment-counter
+      type: json_processor
+      name: Increment Counter
+      position:
+        x: 700
+        y: 200
+      config:
+        operation: set
+        path: response_count
+        value: 1
+
+    - id: end
+      type: end
+      name: Complete
+      position:
+        x: 900
+        y: 200
+      config: {}
+
+  edges:
+    - id: e1
+      source: start
+      target: save-message
+
+    - id: e2
+      source: save-message
+      target: greeting-reply
+
+    - id: e3
+      source: greeting-reply
+      target: increment-counter
+
+    - id: e4
+      source: increment-counter
+      target: end
+
+  metadata:
+    created_at: "2024-12-07T10:00:00Z"
+    updated_at: "2024-12-07T10:00:00Z"
+    created_by: system
